@@ -1,0 +1,26 @@
+import torch
+import torch.nn as nn
+
+class RNNModel(nn.Module):
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, dropout=0.5, device='cpu'):
+        super(RNNModel, self).__init__()
+        self.device = device
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.rnn = nn.RNN(embedding_dim, hidden_dim, batch_first=True)
+        self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden_dim, vocab_size)
+        
+        # Move model to the specified device
+        self.to(device)
+    
+    def forward(self, x, hidden=None):
+        # x shape: [batch_size, seq_length]
+        x = self.embedding(x)  # [batch_size, seq_length, embedding_dim]
+        output, hidden = self.rnn(x, hidden)  # output: [batch_size, seq_length, hidden_dim]
+        output = self.dropout(output)
+        output = self.fc(output)  # [batch_size, seq_length, vocab_size]
+        return output, hidden
+    
+    def init_hidden(self, batch_size):
+        # Initialize hidden state with zeros directly on the correct device
+        return torch.zeros(1, batch_size, self.rnn.hidden_size, device=self.device)
